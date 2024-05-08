@@ -5,16 +5,28 @@ import joblib
 import warnings
 import string
 import re
-from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.feature_extraction.text import CountVectorizer,TfidfVectorizer
+from sklearn.linear_model import LogisticRegression
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score,classification_report
 from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
 from nltk.tokenize import word_tokenize
+from nltk.sentiment import SentimentIntensityAnalyzer
+
+#nltk.download('vader_lexicon')
+sid = SentimentIntensityAnalyzer()
 
 
-
+def Sentiment_replace(text):
+    s_score = sid.polarity_scores(text)["compound"]
+    if s_score >= 0.04:
+        return "positive"
+    elif s_score < -0.04:
+        return "negative"
+    else:
+        return "neutral"
 porter_stemmer = PorterStemmer()
 #functions
 def remove_punctuations(text):
@@ -355,10 +367,16 @@ for i in range(0,732):
    editedText[i] = stem_text(editedText[i])
 
 
+
+
 #Cleaning the sentiment column
 for i in range(0,732):
     targetText[i] = normalize_text(targetText[i])
-    targetText[i] =replace_words(targetText[i],words_to_replace)
+    targetText[i] =Sentiment_replace(targetText[i])
+    #targetText[i] =replace_words(targetText[i],words_to_replace)
+
+
+
 
 
 
@@ -373,50 +391,51 @@ feature = editedText
 
 #1 Split the data set to training and testing
 
-X_train,X_test,Y_train,Y_test= train_test_split(feature,target,test_size=0.45,random_state=2024)
+X_train,X_test,Y_train,Y_test = train_test_split(feature,target,test_size=0.24,random_state=2024)
 
 #2 convert the text to numirical valaues
 
+
 vectorizer = CountVectorizer()
+
 X_train_vec = vectorizer.fit_transform(X_train)
 X_test_vec = vectorizer.transform(X_test)
 
+
+
+
 #3 Train a Multinomial Naive Bayes classifier
-classifier = MultinomialNB()
+
+
+classifier =MultinomialNB()
 classifier.fit(X_train_vec, Y_train)
 y_pred = classifier.predict(X_test_vec)
 print(classification_report(Y_test,y_pred))
 
-#pickle.dump(classifier, open("sentiment model.pkl", "wb"))
+
+
+pickle.dump(classifier, open("sentiment model.pkl", "wb"))
+
 pickle.dump(vectorizer, open("vectors1.pickle", "wb"))
-"""""
+"""
 for i in range(0,10):
     text= input(": ")
+    text =remove_emoji(text)
+    text = normalize_text(text)
+    text = remove_articles(text)
+    text = remove_stopwords(text)
+    text = stem_text(text)
 
-    #newText = remove_emoji(text)
-    newText = normalize_text(text)
-    newText = remove_articles(newText)
-    newText = remove_stopwords(newText)
-    newText =stem_text(newText)
+    pred = classifier.predict(vectorizer.transform([text]))
 
+    if pred == "positive":
+        print("positive")
+    elif pred == "negative":
+        print("negative")
+    else:
+        print("neutral")
 
-    t = [newText]
-
-    text_vec = vectorizer.transform(t)
-    prediction = classifier.predict(text_vec)
-    s = ''.join(prediction)
-    d_prob = classifier.predict_proba(text_vec)
-    print('you are feeling',s)
-    nump = int(d_prob[:,1]*100)
-    numn = int(d_prob[:,0]*100)
-
-    if prediction == 'positive':
-        print( f'I am {nump}% Sure')
-    else :
-        print(f'I am {numn}% Sure')
-"""""
-
-
+"""
 
 
 
