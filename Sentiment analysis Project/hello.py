@@ -1,38 +1,36 @@
-
+import nltk
 import pandas as pd
 import pickle
 import joblib
 import warnings
-import string
 import re
-from sklearn.feature_extraction.text import CountVectorizer,TfidfVectorizer
-from sklearn.linear_model import LogisticRegression
+
+from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score,classification_report
+from sklearn.metrics import classification_report
 from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
 from nltk.tokenize import word_tokenize
 from nltk.sentiment import SentimentIntensityAnalyzer
 
-#nltk.download('vader_lexicon')
+#Some things we need in the functions
+porter_stemmer = PorterStemmer()
 sid = SentimentIntensityAnalyzer()
+warnings.filterwarnings("ignore")
 
 
+
+
+#functions
 def Sentiment_replace(text):
     s_score = sid.polarity_scores(text)["compound"]
-    if s_score >= 0.04:
+    if s_score >= 0.05:
         return "positive"
-    elif s_score < -0.04:
+    elif s_score < -0.05 :
         return "negative"
     else:
         return "neutral"
-porter_stemmer = PorterStemmer()
-#functions
-def remove_punctuations(text):
-    for punctuation in string.punctuation:
-        text = text.replace(punctuation, '')
-    return text
 def remove_emoji(text):
     emoji_pattern = re.compile("["
                                u"\U0001F600-\U0001F64F"  # emoticons
@@ -60,14 +58,12 @@ def remove_articles(text):
     words = text.split()
     filtered_words = [word for word in words if word.lower() not in articles]
     return ' '.join(filtered_words)
-def normalize_text(text):
-    # Convert text to lowercase
-    #text = text.lower()
+def normalize_text(Featuretext):
 
     # Remove punctuation
-    text = re.sub(r'[^\w\s]', '', text)
+    Featuretext = re.sub(r'[^\w\s]', '', Featuretext)
 
-    # Handle contractions (optional)
+    # Handle contractions
     contractions = {
         "aren't": "are not",
         "can't": "cannot",
@@ -103,26 +99,22 @@ def normalize_text(text):
         "you've": "you have"
     }
     for contraction, expanded in contractions.items():
-        text = text.replace(contraction, expanded)
+        Featuretext = Featuretext.replace(contraction, expanded)
 
     # Remove extra whitespaces
-    text = re.sub(r'\s+', ' ', text).strip()
+    text = re.sub(r'\s+', ' ', Featuretext).strip()
 
-    return text
-def stem_text(text):
-    # Tokenize the text into words
-    words = word_tokenize(text)
+    return Featuretext
+def stem_text(Featuretext):
 
-    # Stem each word using the PorterStemmer
+    words = word_tokenize(Featuretext)
     stemmed_words = [porter_stemmer.stem(word) for word in words]
-
-    # Join the stemmed words back into a string
     stemmed_text = ' '.join(stemmed_words)
 
     return stemmed_text
-def remove_stopwords(text):
+def remove_stopwords(Featuretext):
     # Tokenize the text (split into words)
-    words = re.findall(r'\w+', text.lower())
+    words = re.findall(r'\w+', Featuretext.lower())
 
     # Get the English stop words from NLTK
     stop_words = set(stopwords.words('english'))
@@ -134,232 +126,21 @@ def remove_stopwords(text):
     filtered_text = ' '.join(filtered_words)
 
     return filtered_text
-def replace_words(text, replacements):
-    for word, replacement in replacements.items():
-        text = text.replace(word, replacement)
-    return text
 
-warnings.filterwarnings("ignore")
+
  #load csv file
 df = pd.read_csv('sentimentdataset.csv')
-
-#variables
-words_to_replace = {
-    "acceptance" : "positive",
-    "accomplishment" : "positive",
-    "admiration" : "positive",
-    "affection" : "positive",
-    "amazement" : "positive",
-    "amusement" : "positive",
-    "arousal" : "positive",
-    "charm" : "positive",
-    "colorful" : "positive",
-    "contemplation" : "positive",
-    "dazzle" : "positive",
-    "determination" : "positive",
-    "ecstasy" : "positive",
-    "elation" : "positive",
-    "euphoria" : "positive",
-    "elegance" : "positive",
-    "empathetic" : "positive",
-    "enjoyment" : "positive",
-    "enthusiasm" : "positive",
-    "excitement" : "positive",
-    "freedom" : "positive",
-    "radiance" : "positive",
-    "fulfillment" : "positive",
-    "grateful" : "positive",
-    "gratitude" : "positive",
-    "happiness" : "positive",
-    "happy" : "positive",
-    "harmony" : "positive",
-    "contentment" : "positive",
-    "hope" : "positive",
-    "hopeful" : "positive",
-    "inspiration" : "positive",
-    "joy" : "positive",
-    "kind" : "positive",
-    "joyfulreunion" : "positive",
-    "love" : "positive",
-    "playful" : "positive",
-    "mesmerizing" : "positive",
-    "innerjourney" : "positive",
-    "pride" : "positive",
-    "proud" : "positive",
-    "relief" : "positive",
-    "satisfaction" : "positive",
-    "success" : "positive",
-    "serenity" : "positive",
-    "tenderness" : "positive",
-    "compassionate" : "positive",
-    "compassion" : "positive",
-    "positive in baking" : "positive",
-    "spark" : "positive",
-    "exploration" : "positive",
-    "artisticburst" : "positive",
-    "winter magic" : "positive",
-    "emotion" : "positive",
-    "thrill" : "positive",
-    "vibrancy" : "positive",
-    "adventure" : "positive",
-    "challenge" : "positive",
-    "creative positive" : "positive",
-    "yearning" : "positive",
-    "enchantment" : "positive",
-    "resilience" : "positive",
-    "positive" : "positive",
-    "pensive" : "positive",
-    "positiveful" : "positive",
-    "freespirited" : "positive",
-    "zest" : "positive",
-    "positivefulreunion" : "positive",
-    "inspired" : "positive",
-    "positivereunion" : "positive",
-    "oceans positive" : "positive",
-    "sorrow" : "negative",
-    "suffering" : "negative",
-    "resentment" : "negative",
-    "solitude" : "negative",
-    "shame" : "negative",
-    "sadness" : "negative",
-    "obstacle" : "negative",
-    "whimsy" : "negative",
-    "sad" : "negative",
-    "ruins" : "negative",
-    "regret" : "negative",
-    "energy" : "positive",
-    "anxiety" : "negative",
-    "overwhelmed" : "negative",
-    "exhaustion" : "negative",
-    "numbness" : "negative",
-    "loneliness" : "negative",
-    "jealousy" : "negative",
-    "isolation" : "negative",
-    "heartbreak" : "negative",
-    "grief" : "negative",
-    "frustrated" : "negative",
-    "frustration" : "negative",
-    "fearful" : "negative",
-    "fear" : "negative",
-    "embarrassed" : "negative",
-    "disgust" : "negative",
-    "disappointed" : "negative",
-    "heartache" : "negative",
-    "disappointment" : "negative",
-    "Disgust" : "negative",
-    "Confusion" : "negative",
-    "bad" : "negative",
-    "anger" : "negative",
-    "awe" : "positive",
-    "betrayal" : "negative",
-    "bitter" : "negative",
-    "bitterness" : "negative",
-    "boredom" : "negative",
-    "confusion" : "negative",
-    "devastated" : "negative",
-    "desolation" : "negative",
-    "intimid" : "negative",
-    "ambivalence" : "negative",
-    "apprehensive" : "negative",
-    "captivation" : "negative",
-    "dismissive" : "negative",
-    "envious" : "negative",
-    "hate" : "negative",
-    "intrigue" : "negative",
-    "melancholy" : "negative",
-    "mischievous" : "negative",
-    "miscalculation" : "negative",
-    "negativeness" : "negative",
-    "despair" : "negative",
-    "negativeation" : "negative",
-    "whispers of the past" : "negative",
-    "touched" : "positive",
-    "reverence" : "positive",
-    "reflection" : "positive",
-    "nostalgia" : "negative",
-    "negativesweet" : "negative",
-    "lostpositive" : "positive",
-    "indifference" : "negative",
-    "envisioning history" : "positive",
-    "engagement" : "positive",
-    "curiosity" : "positive",
-    "natures beauty" : "positive",
-    "renewed effort" : "positive",
-    "creativity" : "positive",
-    "suspense" : "positive",
-    "coziness" : "positive",
-    "connection" : "positive",
-    "calmness" : "positive",
-    "empowerment" : "positive",
-    "surprise" : "positive",
-    "adrenaline" : "negative",
-    "anticipation" : "positive",
-    "positivealstorm" : "positive",
-    "tranquility" : "positive",
-    "emotionalstorm" : "positive",
-    "wonder" : "positive",
-    "celestial wonder" : "positive",
-    "celestial positive" : "positive",
-    "celestial neutral" : "positive",
-    ##Amr words
-
-    "helplessness":"negative",
-    "neutral":"negative",
-    "darkness":"negative",
-"loss":"negative",
-"envy": "negative",
-"jealous": "negative",
-"hypnotic": "negative",
-"desperation": "negative",
-"dreamchaser": "negative",
-"sympathy": "positive",
-"culinary positive": "positive",
-"positiveing journey": "positive",
-"runway positive" : "positive",
-"positivement": "positive",
-"adoration" : "positive",
-"overpositiveed": "positive",
-"marvel": "positive",
-"festivepositive": "positive",
-"breakthrough": "positive",
-"heartwarming": "positive",
-"positivepositive": "positive",
-"confidence": "positive",
-"positiveness": "positive",
-"culinaryodyssey": "positive",
-"grandeur": "positive",
-"iconic": "positive",
-"motivation": "positive",
-"confident": "positive",
-"blessed": "positive",
-"appreciation": "positive",
-"positivity": "positive",
-"rejuvenation": "positive",
-"optimism": "positive",
-"celebration": "positive",
-"mindfulness": "positive",
-"melodic": "positive",
-"journey": "positive",
-"triumph": "positive",
-"solace": "negative",
-"imagination":"positive",
-"pressure": "negative",
-"friendship": "positive",
-"immersion": "negative",
-"romance": "positive"
-
-
-
-}
-
 
 
 # convert text to lower case
 editedText = df['Text'].str.lower()
 targetText = df['Sentiment (Label)'].str.lower()
 
+
+
 # Cleaning the text to be ready to be put to the model
 for i in range(0,732):
+
    editedText[i] = remove_emoji(editedText[i])
    editedText[i] = normalize_text(editedText[i])
    editedText[i] = remove_articles(editedText[i])
@@ -373,58 +154,44 @@ for i in range(0,732):
 for i in range(0,732):
     targetText[i] = normalize_text(targetText[i])
     targetText[i] =Sentiment_replace(targetText[i])
-    #targetText[i] =replace_words(targetText[i],words_to_replace)
 
 
 
 
+#1 Split the data set to training and testing
 
+X_train,X_test,Y_train,Y_test = train_test_split(editedText,targetText,test_size=0.25,random_state=10)
 
 
 #Feature selection Part !!
 
-target = targetText
-feature = editedText
-
-
-#Writing the model !!
-
-#1 Split the data set to training and testing
-
-X_train,X_test,Y_train,Y_test = train_test_split(feature,target,test_size=0.24,random_state=2024)
-
-#2 convert the text to numirical valaues
-
-
-vectorizer = CountVectorizer()
+vectorizer = CountVectorizer(ngram_range=(1,1))
 
 X_train_vec = vectorizer.fit_transform(X_train)
 X_test_vec = vectorizer.transform(X_test)
 
-
-
-
 #3 Train a Multinomial Naive Bayes classifier
 
 
-classifier =MultinomialNB()
-classifier.fit(X_train_vec, Y_train)
-y_pred = classifier.predict(X_test_vec)
-print(classification_report(Y_test,y_pred))
+MnModel =MultinomialNB()
+MnModel.fit(X_train_vec, Y_train)
+prediction = MnModel.predict(X_test_vec)
+print(classification_report(Y_test,prediction))
 
 
-
-pickle.dump(classifier, open("sentiment model.pkl", "wb"))
+"""
+pickle.dump(MnModel, open("sentiment model.pkl", "wb"))
 
 pickle.dump(vectorizer, open("vectors1.pickle", "wb"))
-"""
+
+
 for i in range(0,10):
     text= input(": ")
-    text =remove_emoji(text)
-    text = normalize_text(text)
-    text = remove_articles(text)
-    text = remove_stopwords(text)
-    text = stem_text(text)
+    # text =remove_emoji(text)
+    # text = normalize_text(text)
+    # text = remove_articles(text)
+    # text = remove_stopwords(text)
+    # text = stem_text(text)
 
     pred = classifier.predict(vectorizer.transform([text]))
 
@@ -435,8 +202,8 @@ for i in range(0,10):
     else:
         print("neutral")
 
-"""
 
+"""
 
 
 
