@@ -179,11 +179,12 @@ prediction = MnModel.predict(X_test_vec)
 print(classification_report(Y_test,prediction))
 
 
-"""
+
 pickle.dump(MnModel, open("sentiment model.pkl", "wb"))
 
 pickle.dump(vectorizer, open("vectors1.pickle", "wb"))
 
+"""
 
 for i in range(0,10):
     text= input(": ")
@@ -201,7 +202,6 @@ for i in range(0,10):
         print("negative")
     else:
         print("neutral")
-
 
 """
 
